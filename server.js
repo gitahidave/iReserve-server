@@ -23,11 +23,17 @@ connectDB();
 
 const app = express();
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://i-reserve-clientside.vercel.app',
+  ...(process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()),
+].filter(Boolean);
+
 // Global Middleware
 app.use(helmet()); // Security headers
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'https://i-reserve-clientside.vercel.app/',
+    origin: allowedOrigins,
     credentials: true, // Required for HTTP-only cookie authentication
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   })
