@@ -27,7 +27,7 @@ const app = express();
 app.use(helmet()); // Security headers
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: process.env.CLIENT_URL || 'https://i-reserve-clientside.vercel.app/',
     credentials: true, // Required for HTTP-only cookie authentication
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   })
