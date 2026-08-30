@@ -56,20 +56,53 @@ export const createListing = async (req, res) => {
   try {
     const { title, description, category, hourlyRate, location, amenities, images } = req.body;
 
+    if (!title?.trim() || !description?.trim() || !category || !hourlyRate) {
+      return res.status(400).json({
+        message: 'Title, description, category, and hourly rate are required',
+      });
+    }
+
+    const numericRate = Number(hourlyRate);
+    if (Number.isNaN(numericRate) || numericRate < 0) {
+      return res.status(400).json({ message: 'Hourly rate must be a valid positive number' });
+    }
+
+    const normalizedLocation =
+      location && typeof location === 'object'
+        ? {
+            address: location.address?.trim() || 'Nairobi',
+            city: location.city?.trim() || 'Nairobi',
+          }
+        : { address: 'Nairobi', city: 'Nairobi' };
+
+    const normalizedAmenities = Array.isArray(amenities)
+      ? amenities.map((item) => String(item).trim()).filter(Boolean)
+      : typeof amenities === 'string'
+        ? amenities
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : [];
+
     const listing = await Listing.create({
       hostId: req.user.id,
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       category,
-      hourlyRate,
-      location: location || { address: 'Nairobi', city: 'Nairobi' },
-      amenities,
-      images,
+      hourlyRate: numericRate,
+      location: normalizedLocation,
+      amenities: normalizedAmenities,
+      images: Array.isArray(images) ? images.filter(Boolean) : [],
     });
 
     res.status(201).json({ success: true, listing });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const message = error?.message || 'Failed to create workspace listing';
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ message: Object.values(error.errors)[0]?.message || message });
+    }
+
+    res.status(500).json({ message });
   }
 };
 
