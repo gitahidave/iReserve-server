@@ -6,11 +6,15 @@ const sendTokenResponse = (user, statusCode, res) => {
     expiresIn: process.env.JWT_EXPIRE || '30d',
   });
 
+  const isProductionCookie =
+    process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER) || process.env.VERCEL === '1';
+
   const options = {
     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     httpOnly: true, // Prevents XSS client-side script access
-    secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Supports cross-site cookies
+    secure: isProductionCookie, // Use HTTPS in production and hosted deployments
+    sameSite: isProductionCookie ? 'none' : 'lax', // Supports cross-site cookies
+    path: '/',
   };
 
   // Remove password from output object
