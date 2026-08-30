@@ -97,9 +97,17 @@ export const getSupportedBanks = async (req, res) => {
       currency: bank.currency,
     }));
 
+    const hasTestBank = banks.some(
+      (bank) => bank.code === 'test-bank' || bank.name?.toLowerCase() === 'test bank'
+    );
+
+    const bankList = hasTestBank
+      ? banks
+      : [{ code: 'test-bank', name: 'Test Bank', country: 'KE', currency: 'KES' }, ...banks];
+
     res.status(200).json({
       success: true,
-      banks,
+      banks: bankList,
     });
   } catch (error) {
     const message = error.response?.data?.message || error.message;
