@@ -16,6 +16,9 @@ export const initializePayment = async (req, res) => {
     }
 
     const user = await User.findById(req.user.id);
+    const host = booking.listingId?.hostId
+      ? await User.findById(booking.listingId.hostId)
+      : null;
 
     // Convert price to smallest currency unit (Kobo / Cents) for Paystack
     const amountInSubunits = Math.round(booking.totalPrice * 100);
@@ -27,9 +30,15 @@ export const initializePayment = async (req, res) => {
       metadata: {
         bookingId: booking._id.toString(),
         clientId: user._id.toString(),
+        hostId: booking.listingId?.hostId?.toString?.() || '',
       },
       callback_url: `${process.env.CLIENT_URL}/dashboard/client`,
     };
+
+    if (host?.paystackSubaccountCode) {
+      paystackPayload.subaccount = host.paystackSubaccountCode;
+      paystackPayload.bearer = 'subaccount';
+    }
 
     const response = await axios.post(
       'https://api.paystack.co/transaction/initialize',
