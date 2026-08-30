@@ -29,32 +29,40 @@ export const setupHostPayouts = async (req, res) => {
       });
     }
 
-    const paystackPayload = {
-      business_name: businessName.trim(),
-      settlement_bank: settlementBank.trim(),
-      account_number: String(accountNumber).trim(),
-      percentage_charge: Number(percentageCharge),
-      description: description?.trim() || `${user.name}'s host payout account`,
-      primary_contact: user.name?.trim() || 'Host',
-      primary_contact_email: user.email,
-      primary_contact_phone: String(primaryContactPhone || '').trim() || '',
-      metadata: {
-        userId: user._id.toString(),
-        accountName: accountName?.trim() || user.name,
-      },
-    };
+    const isTestBank = settlementBank?.trim() === 'test-bank';
 
-    const response = await axios.post('https://api.paystack.co/subaccount', paystackPayload, {
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    let subaccountCode = null;
 
-    const subaccountCode = response?.data?.data?.subaccount_code;
+    if (isTestBank) {
+      subaccountCode = 'TEST_BANK_SUBACCOUNT';
+    } else {
+      const paystackPayload = {
+        business_name: businessName.trim(),
+        settlement_bank: settlementBank.trim(),
+        account_number: String(accountNumber).trim(),
+        percentage_charge: Number(percentageCharge),
+        description: description?.trim() || `${user.name}'s host payout account`,
+        primary_contact: user.name?.trim() || 'Host',
+        primary_contact_email: user.email,
+        primary_contact_phone: String(primaryContactPhone || '').trim() || '',
+        metadata: {
+          userId: user._id.toString(),
+          accountName: accountName?.trim() || user.name,
+        },
+      };
 
-    if (!subaccountCode) {
-      return res.status(400).json({ message: 'Paystack did not return a subaccount code' });
+      const response = await axios.post('https://api.paystack.co/subaccount', paystackPayload, {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      subaccountCode = response?.data?.data?.subaccount_code;
+
+      if (!subaccountCode) {
+        return res.status(400).json({ message: 'Paystack did not return a subaccount code' });
+      }
     }
 
     user.paystackSubaccountCode = subaccountCode;
