@@ -11,24 +11,30 @@ router.post(
   '/',
   protect,
   authorize('host', 'admin'),
-  upload.array('images', 5), // 'images' field name, max 5 files
-  (req, res) => {
-    try {
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ message: 'Please upload at least one image file' });
+  (req, res, next) => {
+    upload.array('images', 5)(req, res, (error) => {
+      if (error) {
+        return res.status(400).json({
+          message: error.message || 'Image upload failed',
+        });
       }
 
-      // Extract secure Cloudinary HTTPS URLs returned by multer-storage-cloudinary
-      const imageUrls = req.files.map((file) => file.path);
+      try {
+        if (!req.files || req.files.length === 0) {
+          return res.status(400).json({ message: 'Please upload at least one image file' });
+        }
 
-      res.status(200).json({
-        success: true,
-        message: 'Images uploaded successfully',
-        images: imageUrls,
-      });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+        const imageUrls = req.files.map((file) => file.path || file.secure_url || file.url);
+
+        res.status(200).json({
+          success: true,
+          message: 'Images uploaded successfully',
+          images: imageUrls,
+        });
+      } catch (error) {
+        res.status(500).json({ message: error.message || 'Internal Server Error' });
+      }
+    });
   }
 );
 

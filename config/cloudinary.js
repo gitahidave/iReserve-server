@@ -5,12 +5,23 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Configure Cloudinary API credentials
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Configure Cloudinary API credentials.
+// Prefer the existing CLOUDINARY_URL env value; if the separated env vars are set,
+// use those instead. Avoid passing undefined values, which overwrite the URL config.
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+if (process.env.CLOUDINARY_URL) {
+  cloudinary.config({ secure: true });
+} else if (cloudName && apiKey && apiSecret) {
+  cloudinary.config({
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
+    secure: true,
+  });
+}
 
 // Configure Multer storage to route files directly to Cloudinary
 const storage = new CloudinaryStorage({
