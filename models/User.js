@@ -30,6 +30,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null, // Required for hosts to receive automated payment split payouts
     },
+    hostSplit: {
+      type: Number,
+      default: 90,
+      min: 1,
+      max: 100,
+    },
   },
   { timestamps: true }
 );

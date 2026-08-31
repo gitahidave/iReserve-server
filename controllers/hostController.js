@@ -1,5 +1,6 @@
 import axios from 'axios';
 import User from '../models/User.js';
+import { normalizeHostSplit } from '../utils/hostPayout.js';
 
 export const setupHostPayouts = async (req, res) => {
   try {
@@ -19,7 +20,7 @@ export const setupHostPayouts = async (req, res) => {
       accountNumber,
       accountName,
       primaryContactPhone,
-      percentageCharge = 80,
+      percentageCharge,
       description,
     } = req.body;
 
@@ -28,6 +29,8 @@ export const setupHostPayouts = async (req, res) => {
         message: 'Business name, settlement bank, and account number are required',
       });
     }
+
+    const hostSplit = normalizeHostSplit(percentageCharge, 90);
 
     const isTestBank = settlementBank?.trim() === 'test-bank';
 
@@ -40,7 +43,7 @@ export const setupHostPayouts = async (req, res) => {
         business_name: businessName.trim(),
         settlement_bank: settlementBank.trim(),
         account_number: String(accountNumber).trim(),
-        percentage_charge: Number(percentageCharge),
+        percentage_charge: hostSplit,
         description: description?.trim() || `${user.name}'s host payout account`,
         primary_contact: user.name?.trim() || 'Host',
         primary_contact_email: user.email,
@@ -66,18 +69,21 @@ export const setupHostPayouts = async (req, res) => {
     }
 
     user.paystackSubaccountCode = subaccountCode;
+    user.hostSplit = hostSplit;
     await user.save();
 
     res.status(201).json({
       success: true,
       message: 'Host onboarding completed successfully',
       paystackSubaccountCode: subaccountCode,
+      hostSplit,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
         paystackSubaccountCode: user.paystackSubaccountCode,
+        hostSplit: user.hostSplit,
       },
     });
   } catch (error) {
