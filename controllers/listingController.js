@@ -32,6 +32,22 @@ export const getListings = async (req, res) => {
   }
 };
 
+// @desc    Get listings owned by the logged-in host
+// @route   GET /api/hosts/listings
+// @access  Private (Host or Admin)
+export const getHostListings = async (req, res) => {
+  try {
+    const query = req.user.role === 'admin' ? {} : { hostId: req.user.id };
+    const listings = await Listing.find(query)
+      .populate('hostId', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(listings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get single listing details
 // @route   GET /api/listings/:id
 // @access  Public

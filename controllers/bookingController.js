@@ -82,3 +82,21 @@ export const getMyBookings = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Get bookings for listings owned by the logged-in host
+// @route   GET /api/hosts/bookings
+// @access  Private (Host or Admin)
+export const getHostBookings = async (req, res) => {
+  try {
+    const listingQuery = req.user.role === 'admin' ? {} : { hostId: req.user.id };
+    const listingIds = await Listing.find(listingQuery).distinct('_id');
+    const bookings = await Booking.find({ listingId: { $in: listingIds } })
+      .populate('listingId', 'title category location hourlyRate hostId')
+      .populate('clientId', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
