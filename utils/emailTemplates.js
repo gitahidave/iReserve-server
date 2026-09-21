@@ -6,15 +6,27 @@ const escapeHtml = (value) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 
+const getBrandHeader = (title) => {
+  const logoUrl = process.env.EMAIL_LOGO_URL?.trim() || 'cid:ireserve-logo';
+  const brand = logoUrl
+    ? `<img src="${escapeHtml(logoUrl)}" alt="iReserve" width="180" style="display: block; width: 180px; max-width: 100%; height: auto; margin: 0 auto 12px; border: 0;">`
+    : '<div style="font-size: 28px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 12px;">iReserve</div>';
+
+  return `
+    <div style="background-color: #0f172a; padding: 24px 20px; text-align: center; color: #ffffff;">
+      ${brand}
+      <h1 style="margin: 0; font-size: 24px;">${escapeHtml(title)}</h1>
+    </div>
+  `;
+};
+
 export const getBookingConfirmationTemplate = (booking, user) => {
   const listingTitle = escapeHtml(booking.listingId?.title || 'Workspace');
   const clientName = escapeHtml(user.name);
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-      <div style="background-color: #0f172a; padding: 20px; text-align: center; color: #ffffff;">
-        <h1 style="margin: 0; font-size: 24px;">iReserve Workspace Booking Confirmed</h1>
-      </div>
+      ${getBrandHeader('Workspace Booking Confirmed')}
       <div style="padding: 24px; color: #334155;">
         <p>Hi <strong>${clientName}</strong>,</p>
         <p>Your payment was successful and your reservation is now confirmed!</p>
@@ -45,9 +57,7 @@ export const getHostPaymentTemplate = (booking, host) => {
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #334155;">
-      <div style="background-color: #0f172a; padding: 20px; text-align: center; color: #ffffff;">
-        <h1 style="margin: 0; font-size: 24px;">Payment Received</h1>
-      </div>
+      ${getBrandHeader('Payment Received')}
       <div style="padding: 24px;">
         <p>Hi <strong>${hostName}</strong>,</p>
         <p>Payment was received for a booking on <strong>${listingTitle}</strong>.</p>

@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import { fileURLToPath } from 'url';
+
+const logoPath = fileURLToPath(new URL('../assets/Ireserve-logo-design.png', import.meta.url));
 
 export const sendEmail = async (options) => {
   const smtpPort = Number(process.env.SMTP_PORT || 587);
@@ -24,7 +27,14 @@ export const sendEmail = async (options) => {
     subject: options.subject,
     text: options.text || options.message,
     html: options.html,
-    attachments: options.attachments || [],
+    attachments: [
+      {
+        filename: 'ireserve-logo.png',
+        path: logoPath,
+        cid: 'ireserve-logo',
+      },
+      ...(options.attachments || []),
+    ],
   };
 
   const info = await transporter.sendMail(message);
