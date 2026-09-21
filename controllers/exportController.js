@@ -1,4 +1,5 @@
 import Booking from '../models/Booking.js';
+import Listing from '../models/Listing.js';
 import { generateBookingPDF, generateCSVReport } from '../utils/exportHelpers.js';
 
 // @desc    Download PDF Receipt for a Booking
@@ -38,6 +39,9 @@ export const downloadBookingsCSV = async (req, res) => {
     // Filter based on user role
     if (req.user.role === 'client') {
       filter.clientId = req.user.id;
+    } else if (req.user.role === 'host') {
+      const listingIds = await Listing.find({ hostId: req.user.id }).distinct('_id');
+      filter.listingId = { $in: listingIds };
     }
 
     const bookings = await Booking.find(filter)
