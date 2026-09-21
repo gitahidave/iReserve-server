@@ -13,6 +13,10 @@ export const initializePayment = async (req, res) => {
   try {
     const { bookingId } = req.body;
 
+    if (!bookingId) {
+      return res.status(400).json({ message: 'Booking ID is required' });
+    }
+
     const booking = await Booking.findById(bookingId).populate('listingId');
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
@@ -22,7 +26,27 @@ export const initializePayment = async (req, res) => {
       return res.status(403).json({ message: 'You can only pay for your own bookings' });
     }
 
+    if (booking.bookingStatus !== 'pending') {
+      return res.status(409).json({ message: `This booking is already ${booking.bookingStatus}` });
+    }
+
+    if (!Number.isFinite(booking.totalPrice) || booking.totalPrice <= 0) {
+      return res.status(400).json({ message: 'Booking amount must be greater than zero' });
+    }
+
     const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(401).json({ message: 'Account no longer exists' });
+    }
+
+    if (!booking.listingId) {
+      return res.status(409).json({ message: 'The workspace listing is no longer available' });
+    }
+
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      return res.status(503).json({ message: 'Payment service is not configured' });
+    }
+
     const host = booking.listingId?.hostId
       ? await User.findById(booking.listingId.hostId)
       : null;
@@ -79,10 +103,15 @@ export const handlePaystackWebhook = async (req, res) => {
     // Validate HMAC SHA512 Signature
     const hash = crypto
       .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
-      .update(JSON.stringify(req.body))
+      .update(req.rawBody || JSON.stringify(req.body))
       .digest('hex');
 
-    if (hash !== req.headers['x-paystack-signature']) {
+    const signature = req.headers['x-paystack-signature'];
+    const hashesMatch = signature && signature.length === hash.length
+      ? crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signature))
+      : false;
+
+    if (!hashesMatch) {
       return res.status(401).json({ message: 'Invalid webhook signature' });
     }
 
@@ -90,7 +119,10 @@ export const handlePaystackWebhook = async (req, res) => {
 
     // Process successful payment event
     if (event.event === 'charge.success') {
-      const { bookingId } = event.data.metadata;
+      const bookingId = event.data?.metadata?.bookingId;
+      if (!bookingId) {
+        return res.status(400).json({ message: 'Payment event is missing booking metadata' });
+      }
 
       const booking = await Booking.findById(bookingId)
         .populate('clientId', 'name email')
@@ -100,6 +132,19 @@ export const handlePaystackWebhook = async (req, res) => {
           populate: { path: 'hostId', select: 'name email' },
         });
       if (booking) {
+        const expectedAmount = Math.round(booking.totalPrice * 100);
+        const eventAmount = Number(event.data?.amount);
+        const referenceMatches = !booking.paystackReference
+          || booking.paystackReference === event.data?.reference;
+
+        if (
+          !referenceMatches
+          || eventAmount !== expectedAmount
+          || event.data?.currency !== 'KES'
+        ) {
+          return res.status(400).json({ message: 'Payment event does not match the booking' });
+        }
+
         const wasConfirmed = booking.bookingStatus === 'confirmed';
         booking.bookingStatus = 'confirmed';
         await booking.save();

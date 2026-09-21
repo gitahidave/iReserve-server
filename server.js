@@ -30,18 +30,29 @@ const allowedOrigins = [
   'http://localhost:5173',
   'https://i-reserve-clientside.vercel.app',
   ...(process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()),
-].filter(Boolean);
+].filter(Boolean).map((origin) => origin.replace(/\/+$/, ''));
 
 // Global Middleware
 app.use(helmet()); // Security headers
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin.replace(/\/+$/, ''))) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Origin is not allowed by CORS'));
+    },
     credentials: true, // Required for HTTP-only cookie authentication
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-app.use(express.json()); // Parse JSON payloads
+app.use(express.json({
+  verify: (req, res, buffer) => {
+    req.rawBody = buffer;
+  },
+})); // Parse JSON payloads and preserve webhook bytes for signature verification
 app.use(cookieParser()); // Parse cookies
 
 // Health Check Route

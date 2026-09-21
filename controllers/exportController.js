@@ -15,11 +15,10 @@ export const downloadBookingPDF = async (req, res) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
-    // Verify ownership (Client who booked or Admin/Host)
-    if (
-      booking.clientId._id.toString() !== req.user.id &&
-      req.user.role !== 'admin'
-    ) {
+    const isClientOwner = booking.clientId._id.toString() === req.user.id;
+    const isHostOwner = booking.listingId?.hostId?.toString() === req.user.id;
+
+    if (!isClientOwner && !isHostOwner && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to download this receipt' });
     }
 
