@@ -1,5 +1,6 @@
 import Booking from '../models/Booking.js';
 import Listing from '../models/Listing.js';
+import { createNotification } from '../utils/notifications.js';
 
 // @desc    Create new booking with Collision Lock validation
 // @route   POST /api/bookings
@@ -50,6 +51,15 @@ export const createBooking = async (req, res) => {
       endTime: end,
       totalPrice,
       bookingStatus: 'pending',
+    });
+
+    await createNotification({
+      recipientId: listing.hostId,
+      type: 'booking_created',
+      title: 'New booking request',
+      message: `${req.user.name} requested ${listing.title} for ${start.toISOString()} to ${end.toISOString()}.`,
+      bookingId: booking._id,
+      listingId: listing._id,
     });
 
     res.status(201).json({ success: true, booking });

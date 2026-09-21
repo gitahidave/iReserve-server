@@ -34,6 +34,10 @@ const bookingSchema = new mongoose.Schema(
       unique: true,
       sparse: true, // Allows null/undefined values while ensuring uniqueness when present
     },
+    paymentEmailSentAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

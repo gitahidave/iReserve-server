@@ -3,7 +3,8 @@ import sendTokenResponse from '../utils/generateToken.js';
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, password, role } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
 
     if (!name?.trim() || !email?.trim() || !password) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
@@ -31,7 +32,13 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
+    const { password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
     const user = await User.findOne({ email }).select('+password');
 
     if (!user || !(await user.matchPassword(password))) {

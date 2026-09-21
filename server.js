@@ -15,6 +15,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import exportRoutes from './routes/exportRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import hostRoutes from './routes/hostRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -56,6 +57,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/exports', exportRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/hosts', hostRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {

@@ -2,6 +2,9 @@ import crypto from 'crypto';
 import axios from 'axios';
 import Booking from '../models/Booking.js';
 import User from '../models/User.js';
+import { createNotification } from '../utils/notifications.js';
+import { getBookingConfirmationTemplate, getHostPaymentTemplate } from '../utils/emailTemplates.js';
+import { sendEmail } from '../utils/sendEmail.js';
 
 // @desc    Initialize Paystack Payment Checkout
 // @route   POST /api/payments/initialize
@@ -13,6 +16,10 @@ export const initializePayment = async (req, res) => {
     const booking = await Booking.findById(bookingId).populate('listingId');
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    if (booking.clientId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You can only pay for your own bookings' });
     }
 
     const user = await User.findById(req.user.id);
@@ -85,10 +92,65 @@ export const handlePaystackWebhook = async (req, res) => {
     if (event.event === 'charge.success') {
       const { bookingId } = event.data.metadata;
 
-      const booking = await Booking.findById(bookingId);
+      const booking = await Booking.findById(bookingId)
+        .populate('clientId', 'name email')
+        .populate({
+          path: 'listingId',
+          select: 'title location hostId',
+          populate: { path: 'hostId', select: 'name email' },
+        });
       if (booking) {
+        const wasConfirmed = booking.bookingStatus === 'confirmed';
         booking.bookingStatus = 'confirmed';
         await booking.save();
+
+        if (!wasConfirmed) {
+          await Promise.all([
+            createNotification({
+              recipientId: booking.clientId._id,
+              type: 'booking_confirmed',
+              title: 'Booking confirmed',
+              message: `Your booking for ${booking.listingId.title} has been confirmed.`,
+              bookingId: booking._id,
+              listingId: booking.listingId._id,
+            }),
+            createNotification({
+              recipientId: booking.listingId.hostId._id,
+              type: 'payment_received',
+              title: 'Payment received',
+              message: `Payment was received for ${booking.listingId.title}.`,
+              bookingId: booking._id,
+              listingId: booking.listingId._id,
+            }),
+          ]);
+        }
+
+        if (!booking.paymentEmailSentAt) {
+          const emailResults = await Promise.allSettled([
+            sendEmail({
+              email: booking.clientId.email,
+              subject: `Booking confirmed: ${booking.listingId.title}`,
+              text: `Hi ${booking.clientId.name},\n\nYour payment was received and your booking for ${booking.listingId.title} is confirmed.\n\nBooking time: ${booking.startTime.toISOString()} to ${booking.endTime.toISOString()}\nAmount: ${booking.totalPrice} KES\n\nThank you for using iReserve.`,
+              html: getBookingConfirmationTemplate(booking, booking.clientId),
+            }),
+            sendEmail({
+              email: booking.listingId.hostId.email,
+              subject: `Payment received: ${booking.listingId.title}`,
+              text: `Hi ${booking.listingId.hostId.name},\n\nPayment was received for the booking on your listing, ${booking.listingId.title}.\n\nBooking time: ${booking.startTime.toISOString()} to ${booking.endTime.toISOString()}\nAmount: ${booking.totalPrice} KES\nClient: ${booking.clientId.name} (${booking.clientId.email})`,
+              html: getHostPaymentTemplate(booking, booking.listingId.hostId),
+            }),
+          ]);
+
+          const failedEmails = emailResults.filter((result) => result.status === 'rejected');
+          failedEmails.forEach((result) => {
+            console.error('Payment email dispatch failed:', result.reason?.message || result.reason);
+          });
+
+          if (failedEmails.length === 0) {
+            booking.paymentEmailSentAt = new Date();
+            await booking.save();
+          }
+        }
       }
     }
 
