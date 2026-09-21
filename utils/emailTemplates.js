@@ -70,3 +70,28 @@ export const getHostPaymentTemplate = (booking, host) => {
     </div>
   `;
 };
+
+export const getWelcomeEmailTemplate = (user) => {
+  const userName = escapeHtml(user.name || 'there');
+  const roleLabel = user.role === 'host' ? 'Host' : 'Client';
+  const roleMessage =
+    user.role === 'host'
+      ? 'You can now start listing your spaces and manage bookings from your dashboard.'
+      : 'You can now browse listings, book spaces, and manage your reservations from your dashboard.';
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+      ${getBrandHeader('Welcome to iReserve')}
+      <div style="padding: 24px; color: #334155; line-height: 1.6;">
+        <p>Hi <strong>${userName}</strong>,</p>
+        <p>Welcome to iReserve. Your ${roleLabel.toLowerCase()} account has been created successfully.</p>
+        <p>${roleMessage}</p>
+        <p>Use your email and password to sign in whenever you are ready.</p>
+        <p>Thanks for joining iReserve.</p>
+      </div>
+      <div style="background-color: #f1f5f9; padding: 12px; text-align: center; font-size: 12px; color: #64748b;">
+        &copy; ${new Date().getFullYear()} iReserve. All rights reserved.
+      </div>
+    </div>
+  `;
+};

@@ -1,4 +1,6 @@
 import User from '../models/User.js';
+import { sendEmail } from '../utils/sendEmail.js';
+import { getWelcomeEmailTemplate } from '../utils/emailTemplates.js';
 import sendTokenResponse from '../utils/generateToken.js';
 
 export const register = async (req, res) => {
@@ -20,6 +22,18 @@ export const register = async (req, res) => {
     }
 
     const user = await User.create({ name, email, password, role });
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: `Welcome to iReserve as a ${user.role === 'host' ? 'Host' : 'Client'}`,
+        text: `Hi ${user.name},\n\nWelcome to iReserve. Your ${user.role === 'host' ? 'host' : 'client'} account has been created successfully.\n\nYou can now get started from your dashboard.\n\nThanks for joining iReserve.`,
+        html: getWelcomeEmailTemplate(user),
+      });
+    } catch (emailError) {
+      console.error('Registration email dispatch failed:', emailError.message || emailError);
+    }
+
     sendTokenResponse(user, 201, res);
   } catch (error) {
     if (error.name === 'ValidationError') {
