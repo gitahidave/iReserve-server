@@ -7,7 +7,7 @@ const escapeHtml = (value) =>
     .replaceAll("'", '&#039;');
 
 const getBrandHeader = (title) => {
-  const logoUrl = process.env.EMAIL_LOGO_URL?.trim() || 'cid:ireserve-logo';
+  const logoUrl = process.env.EMAIL_LOGO_URL?.trim();
   const brand = logoUrl
     ? `<img src="${escapeHtml(logoUrl)}" alt="iReserve" width="180" style="display: block; width: 180px; max-width: 100%; height: auto; margin: 0 auto 12px; border: 0;">`
     : '<div style="font-size: 28px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 12px;">iReserve</div>';
