@@ -7,16 +7,33 @@ export const sendEmail = async (options) => {
     throw new Error('SMTP email configuration is incomplete');
   }
 
-  // Create reusable transporter object using SMTP transport
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: smtpPort,
-    secure: smtpPort === 465,
-    auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD,
-    },
-  });
+  // Gmail-specific connection settings optimized for Render cloud instances
+  const isGmail = process.env.SMTP_HOST.includes('gmail.com');
+
+  const transporter = nodemailer.createTransport(
+    isGmail
+      ? {
+          service: 'gmail', // Uses Nodemailer's built-in Gmail preset (handles TLS handshakes better on cloud hosts)
+          auth: {
+            user: process.env.SMTP_EMAIL,
+            pass: process.env.SMTP_PASSWORD,
+          },
+        }
+      : {
+          host: process.env.SMTP_HOST,
+          port: smtpPort,
+          secure: smtpPort === 465,
+          auth: {
+            user: process.env.SMTP_EMAIL,
+            pass: process.env.SMTP_PASSWORD,
+          },
+          // Prevents connection timeouts on cloud hosting providers like Render
+          tls: {
+            rejectUnauthorized: true,
+            ciphers: 'SSLv3',
+          },
+        }
+  );
 
   const message = {
     from: `"${process.env.FROM_NAME || 'iReserve'}" <${process.env.FROM_EMAIL || process.env.SMTP_EMAIL}>`,
@@ -27,8 +44,12 @@ export const sendEmail = async (options) => {
     attachments: options.attachments || [],
   };
 
-  const info = await transporter.sendMail(message);
-
-  console.log('Email sent: %s', info.messageId);
-  return info;
+  try {
+    const info = await transporter.sendMail(message);
+    console.log('✅ Email sent successfully: %s', info.messageId);
+    return info;
+  } catch (error) {
+    console.error('❌ Nodemailer Error sending email:', error.message);
+    throw error; // Re-throw to be caught by your route handler/controller
+  }
 };
