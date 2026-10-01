@@ -3,6 +3,7 @@ import { sendEmail } from '../utils/sendEmail.js';
 import { getWelcomeEmailTemplate } from '../utils/emailTemplates.js';
 import sendTokenResponse from '../utils/generateToken.js';
 import getAuthCookieOptions from '../utils/authCookieOptions.js';
+import { waitUntil } from '@vercel/functions';
 
 export const register = async (req, res) => {
   try {
@@ -23,9 +24,7 @@ export const register = async (req, res) => {
     }
 
     const user = await User.create({ name, email, password, role });
-    sendTokenResponse(user, 201, res, { emailSent: null, emailPending: true });
-
-    setImmediate(() => {
+    const welcomeEmail = () =>
       sendEmail({
         email: user.email,
         subject: `Welcome to iReserve as a ${user.role === 'host' ? 'Host' : 'Client'}`,
@@ -41,7 +40,14 @@ export const register = async (req, res) => {
           stack: error.stack,
         });
       });
-    });
+
+    if (process.env.VERCEL === '1') {
+      waitUntil(welcomeEmail());
+    } else {
+      setImmediate(() => welcomeEmail());
+    }
+
+    sendTokenResponse(user, 201, res, { emailSent: null, emailPending: true });
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ message: Object.values(error.errors)[0].message });
