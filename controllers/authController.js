@@ -23,26 +23,27 @@ export const register = async (req, res) => {
     }
 
     const user = await User.create({ name, email, password, role });
-    const welcomeEmail = () =>
-      sendEmail({
+    let emailSent = false;
+    try {
+      await sendEmail({
         email: user.email,
         subject: `Welcome to iReserve as a ${user.role === 'host' ? 'Host' : 'Client'}`,
         text: `Hi ${user.name},\n\nWelcome to iReserve. Your ${user.role === 'host' ? 'host' : 'client'} account has been created successfully.\n\nYou can now get started from your dashboard.\n\nThanks for joining iReserve.`,
         html: getWelcomeEmailTemplate(user),
-      }).catch((error) => {
-        console.error('Registration email dispatch failed:', {
-          message: error.message,
-          code: error.code,
-          command: error.command,
-          responseCode: error.responseCode,
-          response: error.response,
-          stack: error.stack,
-        });
       });
+      emailSent = true;
+    } catch (error) {
+      console.error('Registration email dispatch failed:', {
+        message: error.message,
+        code: error.code,
+        command: error.command,
+        responseCode: error.responseCode,
+        response: error.response,
+        stack: error.stack,
+      });
+    }
 
-    setImmediate(() => welcomeEmail());
-
-    sendTokenResponse(user, 201, res, { emailSent: null, emailPending: true });
+    sendTokenResponse(user, 201, res, { emailSent, emailPending: false });
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ message: Object.values(error.errors)[0].message });
