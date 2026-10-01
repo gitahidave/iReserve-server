@@ -3,7 +3,6 @@ import { sendEmail } from '../utils/sendEmail.js';
 import { getWelcomeEmailTemplate } from '../utils/emailTemplates.js';
 import sendTokenResponse from '../utils/generateToken.js';
 import getAuthCookieOptions from '../utils/authCookieOptions.js';
-import { waitUntil } from '@vercel/functions';
 
 export const register = async (req, res) => {
   try {
@@ -41,11 +40,7 @@ export const register = async (req, res) => {
         });
       });
 
-    if (process.env.VERCEL === '1') {
-      waitUntil(welcomeEmail());
-    } else {
-      setImmediate(() => welcomeEmail());
-    }
+    setImmediate(() => welcomeEmail());
 
     sendTokenResponse(user, 201, res, { emailSent: null, emailPending: true });
   } catch (error) {
