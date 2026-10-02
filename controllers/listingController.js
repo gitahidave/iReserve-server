@@ -139,7 +139,7 @@ export const updateListing = async (req, res) => {
     }
 
     listing = await Listing.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 
