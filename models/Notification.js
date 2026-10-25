@@ -40,5 +40,12 @@ const notificationSchema = new mongoose.Schema(
 );
 
 notificationSchema.index({ recipientId: 1, createdAt: -1 });
+notificationSchema.index(
+  { recipientId: 1, type: 1, bookingId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { type: 'payment_received', bookingId: { $exists: true } },
+  }
+);
 
 export default mongoose.model('Notification', notificationSchema);

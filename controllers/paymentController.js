@@ -2,7 +2,10 @@ import crypto from 'crypto';
 import axios from 'axios';
 import Booking from '../models/Booking.js';
 import User from '../models/User.js';
-import { createNotification } from '../utils/notifications.js';
+import {
+  createNotification,
+  createPaymentReceivedNotification,
+} from '../utils/notifications.js';
 import { getBookingConfirmationTemplate, getHostPaymentTemplate } from '../utils/emailTemplates.js';
 import { sendEmail } from '../utils/sendEmail.js';
 
@@ -51,6 +54,25 @@ export const initializePayment = async (req, res) => {
       ? await User.findById(booking.listingId.hostId)
       : null;
 
+    const clientOrigins = (process.env.CLIENT_URL || '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    if (clientOrigins.length === 0) {
+      return res.status(503).json({ message: 'Client redirect URL is not configured' });
+    }
+
+    let callbackUrl;
+    try {
+      const clientUrl = new URL(clientOrigins[0]);
+      if (!['http:', 'https:'].includes(clientUrl.protocol)) {
+        throw new Error('Unsupported client URL protocol');
+      }
+      callbackUrl = new URL('/dashboard/client', clientUrl).toString();
+    } catch {
+      return res.status(503).json({ message: 'Client redirect URL is invalid' });
+    }
+
     // Convert price to smallest currency unit (Kobo / Cents) for Paystack
     const amountInSubunits = Math.round(booking.totalPrice * 100);
 
@@ -63,7 +85,7 @@ export const initializePayment = async (req, res) => {
         clientId: user._id.toString(),
         hostId: booking.listingId?.hostId?.toString?.() || '',
       },
-      callback_url: `${process.env.CLIENT_URL}/dashboard/client`,
+      callback_url: callbackUrl,
     };
 
     if (host?.paystackSubaccountCode) {
@@ -149,25 +171,23 @@ export const handlePaystackWebhook = async (req, res) => {
         booking.bookingStatus = 'confirmed';
         await booking.save();
 
+        await createPaymentReceivedNotification({
+          recipientId: booking.listingId.hostId?._id,
+          title: 'Payment received',
+          message: `Payment was received for ${booking.listingId.title}.`,
+          bookingId: booking._id,
+          listingId: booking.listingId._id,
+        });
+
         if (!wasConfirmed) {
-          await Promise.all([
-            createNotification({
-              recipientId: booking.clientId._id,
-              type: 'booking_confirmed',
-              title: 'Booking confirmed',
-              message: `Your booking for ${booking.listingId.title} has been confirmed.`,
-              bookingId: booking._id,
-              listingId: booking.listingId._id,
-            }),
-            createNotification({
-              recipientId: booking.listingId.hostId._id,
-              type: 'payment_received',
-              title: 'Payment received',
-              message: `Payment was received for ${booking.listingId.title}.`,
-              bookingId: booking._id,
-              listingId: booking.listingId._id,
-            }),
-          ]);
+          await createNotification({
+            recipientId: booking.clientId._id,
+            type: 'booking_confirmed',
+            title: 'Booking confirmed',
+            message: `Your booking for ${booking.listingId.title} has been confirmed.`,
+            bookingId: booking._id,
+            listingId: booking.listingId._id,
+          });
         }
 
         if (!booking.paymentEmailSentAt) {

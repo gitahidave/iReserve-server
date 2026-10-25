@@ -19,3 +19,28 @@ export const createNotification = async ({
     listingId,
   });
 };
+
+export const createPaymentReceivedNotification = async ({
+  recipientId,
+  title,
+  message,
+  bookingId,
+  listingId,
+}) => {
+  if (!recipientId) return null;
+
+  return Notification.findOneAndUpdate(
+    { recipientId, type: 'payment_received', bookingId },
+    {
+      $setOnInsert: {
+        recipientId,
+        type: 'payment_received',
+        title,
+        message,
+        bookingId,
+        listingId,
+      },
+    },
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+  );
+};
