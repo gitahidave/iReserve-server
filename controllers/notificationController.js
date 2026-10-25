@@ -3,7 +3,7 @@ import Notification from '../models/Notification.js';
 export const getMyNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ recipientId: req.user.id })
-      .populate('bookingId', 'listingId startTime endTime bookingStatus totalPrice')
+      .populate('bookingId', 'listingId startTime endTime bookingStatus paymentStatus totalPrice')
       .populate('listingId', 'title location')
       .sort({ createdAt: -1 });
 

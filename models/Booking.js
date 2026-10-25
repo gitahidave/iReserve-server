@@ -29,6 +29,13 @@ const bookingSchema = new mongoose.Schema(
       enum: ['pending', 'confirmed', 'cancelled'],
       default: 'pending',
     },
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'paid'],
+      default() {
+        return this.bookingStatus === 'confirmed' ? 'paid' : 'pending';
+      },
+    },
     paystackReference: {
       type: String,
       unique: true,

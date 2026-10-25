@@ -24,7 +24,9 @@ export const generateBookingPDF = (booking, res) => {
   // Invoice Details
   doc.fontSize(12).text(`Booking Reference: ${booking._id}`);
   doc.text(`Date: ${new Date(booking.createdAt).toLocaleDateString()}`);
-  doc.text(`Payment Status: ${booking.bookingStatus.toUpperCase()}`);
+  const paymentStatus = booking.paymentStatus
+    || (booking.bookingStatus === 'confirmed' ? 'paid' : 'pending');
+  doc.text(`Payment Status: ${paymentStatus.toUpperCase()}`);
   doc.moveDown();
 
   // Divider Line
@@ -64,7 +66,9 @@ export const generateCSVReport = (data) => {
     'Start Time': new Date(item.startTime).toLocaleString(),
     'End Time': new Date(item.endTime).toLocaleString(),
     'Amount (KES)': item.totalPrice,
-    'Status': item.bookingStatus,
+    'Booking Status': item.bookingStatus,
+    'Payment Status': item.paymentStatus
+      || (item.bookingStatus === 'confirmed' ? 'paid' : 'pending'),
   }));
 
   return json2csv(formattedData);

@@ -169,6 +169,7 @@ export const handlePaystackWebhook = async (req, res) => {
 
         const wasConfirmed = booking.bookingStatus === 'confirmed';
         booking.bookingStatus = 'confirmed';
+        booking.paymentStatus = 'paid';
         await booking.save();
 
         await createPaymentReceivedNotification({
