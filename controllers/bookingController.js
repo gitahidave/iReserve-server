@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Booking from '../models/Booking.js';
 import Listing from '../models/Listing.js';
 import { createNotification } from '../utils/notifications.js';
@@ -78,6 +79,46 @@ export const getMyBookings = async (req, res) => {
       .sort({ createdAt: -1 });
 
     res.status(200).json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Cancel a pending booking
+// @route   PATCH /api/bookings/:bookingId/cancel
+// @access  Private (Client)
+export const cancelBooking = async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.bookingId)) {
+      return res.status(400).json({ message: 'Invalid booking ID' });
+    }
+
+    const booking = await Booking.findOneAndUpdate(
+      {
+        _id: req.params.bookingId,
+        clientId: req.user.id,
+        bookingStatus: 'pending',
+        paymentStatus: { $ne: 'paid' },
+      },
+      { $set: { bookingStatus: 'cancelled' } },
+      { new: true, runValidators: true }
+    );
+
+    if (booking) {
+      return res.status(200).json({ success: true, booking });
+    }
+
+    const existingBooking = await Booking.findOne({
+      _id: req.params.bookingId,
+      clientId: req.user.id,
+    });
+    if (!existingBooking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    return res.status(409).json({
+      message: `This booking cannot be cancelled because it is ${existingBooking.bookingStatus}`,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
