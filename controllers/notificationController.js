@@ -1,5 +1,12 @@
 import Notification from '../models/Notification.js';
 
+const BOOKING_LIST_ROUTE = 'AdminDashboard';
+
+const serializeNotification = (notification) => ({
+  ...notification.toObject(),
+  redirectTo: BOOKING_LIST_ROUTE,
+});
+
 export const getMyNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ recipientId: req.user.id })
@@ -12,7 +19,11 @@ export const getMyNotifications = async (req, res) => {
       0
     );
 
-    res.status(200).json({ success: true, unreadCount, notifications });
+    res.status(200).json({
+      success: true,
+      unreadCount,
+      notifications: notifications.map(serializeNotification),
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -30,7 +41,7 @@ export const markNotificationAsRead = async (req, res) => {
       return res.status(404).json({ message: 'Notification not found' });
     }
 
-    res.status(200).json({ success: true, notification });
+    res.status(200).json({ success: true, notification: serializeNotification(notification) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
