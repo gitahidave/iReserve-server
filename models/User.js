@@ -21,6 +21,14 @@ const userSchema = new mongoose.Schema(
       minlength: 6,
       select: false, // Exclude password from query results by default
     },
+    resetPasswordToken: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false,
+    },
     role: {
       type: String,
       enum: ['client', 'host', 'admin'],

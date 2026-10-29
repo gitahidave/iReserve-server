@@ -95,3 +95,23 @@ export const getWelcomeEmailTemplate = (user) => {
     </div>
   `;
 };
+
+export const getPasswordResetEmailTemplate = (user, resetUrl) => {
+  const userName = escapeHtml(user.name || 'there');
+  const safeResetUrl = escapeHtml(resetUrl);
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+      ${getBrandHeader('Reset Your Password')}
+      <div style="padding: 24px; color: #334155; line-height: 1.6;">
+        <p>Hi <strong>${userName}</strong>,</p>
+        <p>We received a request to reset your iReserve password. Use the link below within one hour:</p>
+        <p><a href="${safeResetUrl}" style="display: inline-block; padding: 12px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px;">Reset password</a></p>
+        <p>If you did not request this, you can safely ignore this email.</p>
+      </div>
+      <div style="background-color: #f1f5f9; padding: 12px; text-align: center; font-size: 12px; color: #64748b;">
+        &copy; ${new Date().getFullYear()} iReserve. All rights reserved.
+      </div>
+    </div>
+  `;
+};
