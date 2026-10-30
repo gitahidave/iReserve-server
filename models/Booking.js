@@ -41,6 +41,24 @@ const bookingSchema = new mongoose.Schema(
       unique: true,
       sparse: true, // Allows null/undefined values while ensuring uniqueness when present
     },
+    mpesaPaymentAttempts: [{
+      merchantRequestId: String,
+      checkoutRequestId: String,
+      phoneNumber: String,
+      amount: Number,
+      status: {
+        type: String,
+        enum: ['initiating', 'pending', 'failed', 'paid'],
+        required: true,
+      },
+      receiptNumber: String,
+      resultCode: Number,
+      resultDescription: String,
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
     paymentEmailSentAt: {
       type: Date,
       default: null,
@@ -51,5 +69,6 @@ const bookingSchema = new mongoose.Schema(
 
 // Compound index to accelerate slot-availability collision checks
 bookingSchema.index({ listingId: 1, startTime: 1, endTime: 1 });
+bookingSchema.index({ 'mpesaPaymentAttempts.checkoutRequestId': 1 });
 
 export default mongoose.model('Booking', bookingSchema);

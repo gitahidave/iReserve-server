@@ -19,3 +19,18 @@ FROM_NAME=iReserve
 ```
 
 Configure `SMTP_USER` and `SMTP_PASS` together when the SMTP server requires authentication. A local SMTP inbox such as Mailpit can receive development emails. In other environments, email continues to use Resend with `RESEND_API_KEY` and `FROM_EMAIL`.
+
+## M-Pesa payments (Daraja)
+
+Set the Daraja app credentials, API base URL, and a publicly reachable HTTPS callback URL in the server environment:
+
+```env
+MPESA_CONSUMER_KEY=your-consumer-key
+MPESA_CONSUMER_SECRET=your-consumer-secret
+MPESA_PASSKEY=your-stk-passkey
+MPESA_SHORT_CODE=your-business-shortcode
+MPESA_CALLBACK_URL=https://your-api.example.com/api/payments/mpesa/callback
+MPESA_BASE_URL=https://sandbox.safaricom.co.ke
+```
+
+Use `MPESA_BASE_URL=https://api.safaricom.co.ke` with production credentials when going live. The authenticated endpoint `POST /api/payments/mpesa/initialize` accepts `{ "bookingId": "...", "phoneNumber": "0712345678" }` (also accepts `01...` or `254...`) and sends an STK Push. The server uses the saved booking total in KES; Daraja requires an integer amount, so fractional KES values are rounded to the nearest shilling. The callback verifies the checkout request and amount, then queries Daraja before confirming the booking. Collections are made to the configured Daraja shortcode; automatic host payout splitting is not part of this flow.
