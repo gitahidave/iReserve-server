@@ -36,11 +36,6 @@ const bookingSchema = new mongoose.Schema(
         return this.bookingStatus === 'confirmed' ? 'paid' : 'pending';
       },
     },
-    paystackReference: {
-      type: String,
-      unique: true,
-      sparse: true, // Allows null/undefined values while ensuring uniqueness when present
-    },
     mpesaPaymentAttempts: [{
       merchantRequestId: String,
       checkoutRequestId: String,

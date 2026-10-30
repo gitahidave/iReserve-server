@@ -48,11 +48,7 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-app.use(express.json({
-  verify: (req, res, buffer) => {
-    req.rawBody = buffer;
-  },
-})); // Parse JSON payloads and preserve webhook bytes for signature verification
+app.use(express.json()); // Parse JSON payloads
 app.use(cookieParser()); // Parse cookies
 
 // Health Check Route
