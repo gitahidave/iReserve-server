@@ -73,17 +73,20 @@ const getDarajaAccessToken = async () => {
 
 const completeBookingPayment = async (booking) => {
   const wasConfirmed = booking.bookingStatus === 'confirmed';
+  const wasPaid = booking.paymentStatus === 'paid';
   booking.bookingStatus = 'confirmed';
   booking.paymentStatus = 'paid';
   await booking.save();
 
-  await createPaymentReceivedNotification({
-    recipientId: booking.listingId.hostId?._id,
-    title: 'Payment received',
-    message: `Payment was received for ${booking.listingId.title}.`,
-    bookingId: booking._id,
-    listingId: booking.listingId._id,
-  });
+  if (!wasPaid) {
+    await createPaymentReceivedNotification({
+      recipientId: booking.listingId.hostId?._id,
+      title: 'Payment received',
+      message: `Payment was received for ${booking.listingId.title}.`,
+      bookingId: booking._id,
+      listingId: booking.listingId._id,
+    });
+  }
 
   if (!wasConfirmed) {
     await createNotification({
@@ -376,9 +379,7 @@ export const handleDarajaCallback = async (req, res) => {
       attempt.receiptNumber = String(receiptNumber);
       await booking.save();
     }
-    if (booking.paymentStatus !== 'paid') {
-      await completeBookingPayment(booking);
-    }
+    await completeBookingPayment(booking);
 
     return res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted' });
   } catch (error) {

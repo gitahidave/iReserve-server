@@ -4,7 +4,7 @@ const sendWithNodemailer = async (options) => {
   const fromEmail = process.env.FROM_EMAIL;
   const host = process.env.SMTP_HOST;
   if (!fromEmail || !host) {
-    throw new Error('FROM_EMAIL and SMTP_HOST are required to send email in development');
+    throw new Error('FROM_EMAIL and SMTP_HOST are required to send email');
   }
 
   const port = Number(process.env.SMTP_PORT || 1025);
@@ -66,14 +66,4 @@ const sendWithResend = async (options) => {
   return result;
 };
 
-export const sendEmail = async (options) => {
-  if (process.env.NODE_ENV !== 'production') {
-    return sendWithNodemailer(options);
-  }
-
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error('RESEND_API_KEY is required to send email');
-  }
-
-  return sendWithResend(options);
-};
+export const sendEmail = sendWithNodemailer;

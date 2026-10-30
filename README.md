@@ -8,7 +8,7 @@ The authentication API provides:
 
 Set `CLIENT_URL` to the client origin so reset links point to the deployed client. For a custom reset page URL, set `PASSWORD_RESET_URL`.
 
-In development (`NODE_ENV=development`), email is sent through Nodemailer using SMTP:
+Email is sent through Nodemailer using SMTP in all environments:
 
 ```env
 SMTP_HOST=localhost
@@ -18,7 +18,7 @@ FROM_EMAIL=no-reply@example.com
 FROM_NAME=iReserve
 ```
 
-Configure `SMTP_USER` and `SMTP_PASS` together when the SMTP server requires authentication. A local SMTP inbox such as Mailpit can receive development emails. In other environments, email continues to use Resend with `RESEND_API_KEY` and `FROM_EMAIL`.
+Configure `SMTP_USER` and `SMTP_PASS` together when the SMTP server requires authentication. A local SMTP inbox such as Mailpit can receive development emails. Payment confirmation emails are sent to the client after Daraja verifies the payment.
 
 ## M-Pesa payments (Daraja)
 
