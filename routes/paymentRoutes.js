@@ -8,6 +8,6 @@ import { protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.post('/mpesa/initialize', protect, initializeMpesaPayment);
-router.post('/mpesa/callback', handleDarajaCallback);
-
+router.post('/callback', handleDarajaCallback);
+ 
 export default router;
